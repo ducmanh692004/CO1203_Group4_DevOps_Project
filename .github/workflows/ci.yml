@@ -47,6 +47,7 @@ jobs:
           DB_PORT: 5432
           NODE_ENV: test
         run: |
+          PGPASSWORD=password psql -h localhost -U postgres -d tododb -c "CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);"
           cd backend && npm test
 
       - name: Login to Docker Hub
