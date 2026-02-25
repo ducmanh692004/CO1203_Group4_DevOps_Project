@@ -40,19 +40,56 @@
 version: '3.8'
 
 services:
-  # STUDENT TODO: Define frontend service
+  # 1. Frontend service
   frontend:
     build: ./frontend
-    # TODO: Add ports, depends_on
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy # Frontend chỉ start khi Backend đã healthy
 
-  # STUDENT TODO: Define backend service
+  # 2. Backend service
   backend:
     build: ./backend
-    # TODO: Add ports, environment, depends_on, healthcheck
+    ports:
+      - "8080:8080"
+    environment:
+      # Các biến này phải khớp với cấu hình ở service postgres bên dưới
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=tododb
+      - DB_USER=dev_user
+      - DB_PASSWORD=dev_password
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy # Backend chờ Postgres pass healthcheck mới start
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'fetch(\"http://localhost:8080/health\").then(r => r.ok ? process.exit(0) : process.exit(1))'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # STUDENT TODO: Define postgres service
+  # 3. Postgres service
   postgres:
     image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: tododb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/database.sql:/docker-entrypoint-initdb.d/database.sql # Mount script khởi tạo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d tododb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     # TODO: Add environment, ports, volumes, healthcheck
 
 # STUDENT TODO: Define named volumes
