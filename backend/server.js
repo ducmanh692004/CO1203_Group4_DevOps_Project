@@ -29,7 +29,8 @@ app.get('/health', (req, res) => {
 app.get('/api/todos', async (req, res) => {
    try {
       const result = await pool.query('SELECT * FROM todos ORDER BY id');
-      res.json(result.rows);
+      // res.json(result.rows);
+      res.status(500).json({ error: "broken" });
    } catch (err) {
       res.status(500).json({ error: err.message });
    }
