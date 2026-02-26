@@ -10,7 +10,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     
-    # Khởi tạo Database ảo để chạy npm test (Yêu cầu 4.C)
     services:
       postgres:
         image: postgres:15-alpine
@@ -73,19 +72,21 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/devops-frontend:latest
 
-  deploy:
+
+  deploy-backend:
+    name: Deploy Backend to Render
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/Greenwich/Final_2_DevOps/Demo_Project/CO1203_Group4_DevOps_Project
-            git pull origin main
-            docker compose pull
-            docker compose up -d
+      - name: Trigger Backend Deploy
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+
+  deploy-frontend:
+    name: Deploy Frontend to Render
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Frontend Deploy
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
