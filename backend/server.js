@@ -93,13 +93,30 @@ app.put('/api/todos/:id', async (req, res) => {
    }
 });
 
+async function initDatabase() {
+   try {
+      await pool.query(`
+         CREATE TABLE IF NOT EXISTS todos (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            completed BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         );
+      `);
+      console.log("Database initialized");
+   } catch (err) {
+      console.error("Database initialization failed:", err);
+   }
+}
+
 const PORT = process.env.PORT || 8080;
 
 // BUG #5: Server starts even in test mode, causing port conflicts
 // STUDENT FIX: Only start server if NOT in test mode
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
         console.log(`Backend running on port ${PORT}`);
+         await initDatabase();
     });
 }
 // BUG #6: App not exported - tests can't import it!

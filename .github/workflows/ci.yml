@@ -9,8 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
-    # Khởi tạo Database ảo để chạy npm test (Yêu cầu 4.C)
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -21,24 +20,26 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
-      - name: Install Dependencies
+      - name: Install backend dependencies
         run: |
-          cd backend && npm ci
-          
-      - name: Run Tests
+          cd backend
+          npm ci
+
+      - name: Run backend tests
         env:
           DB_HOST: localhost
           DB_USER: postgres
@@ -47,8 +48,8 @@ jobs:
           DB_PORT: 5432
           NODE_ENV: test
         run: |
-          PGPASSWORD=password psql -h localhost -U postgres -d tododb -c "CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);"
-          cd backend && npm test
+          cd backend
+          npm test
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -57,7 +58,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Build and Push Backend
+      - name: Build & Push Backend Image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
@@ -65,7 +66,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/devops-backend:latest
 
-      - name: Build and Push Frontend
+      - name: Build & Push Frontend Image
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
@@ -77,15 +78,10 @@ jobs:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/Greenwich/Final_2_DevOps/Demo_Project/CO1203_Group4_DevOps_Project
-            git pull origin main
-            docker compose pull
-            docker compose up -d
+      - name: Trigger Backend Deploy (Render)
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+
+      - name: Trigger Frontend Deploy (Render)
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
