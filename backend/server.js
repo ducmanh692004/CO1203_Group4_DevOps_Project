@@ -113,12 +113,22 @@ const PORT = process.env.PORT || 8080;
 
 // BUG #5: Server starts even in test mode, causing port conflicts
 // STUDENT FIX: Only start server if NOT in test mode
-if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, async () => {
-        console.log(`Backend running on port ${PORT}`);
-         await initDatabase();
-    });
+async function startServer() {
+   try {
+      await initDatabase();
+
+      if (process.env.NODE_ENV !== 'test') {
+         app.listen(PORT, () => {
+            console.log(`Backend running on port ${PORT}`);
+         });
+      }
+   } catch (err) {
+      console.error("Failed to start server:", err);
+      process.exit(1);
+   }
 }
+
+startServer();
 // BUG #6: App not exported - tests can't import it!
 // STUDENT FIX: Export the app module
 module.exports = app;
