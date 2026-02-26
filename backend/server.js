@@ -128,8 +128,9 @@ async function startServer() {
    }
 }
 
-startServer();
-
+if (process.env.NODE_ENV !== 'test') {
+   startServer();
+}
 // BUG #6: App not exported - tests can't import it!
 // STUDENT FIX: Export the app module
 module.exports = app;
